@@ -11,22 +11,17 @@ class YourAttention < Formula
 
   depends_on "node"
 
-  # Node runs the TypeScript sources directly, so there is no build step: the checkout,
-  # its runtime dependencies and a symlink into bin are the whole install. That needs a
-  # Node built with type stripping; Homebrew's is.
+  # Node runs the TypeScript sources directly, so there is no build step: the checkout, its
+  # runtime dependencies and a symlink into bin are the whole install. That needs a Node
+  # built with type stripping; Homebrew's is. The pi extension imports typebox, which
+  # package.json lists under devDependencies, but pi ships typebox itself and loads the
+  # extension, so the CLI does not need it here.
   def install
     libexec.install Dir["*"]
 
     cd libexec do
       system "npm", "install", "--omit=dev", "--no-audit", "--no-fund", "--no-save"
     end
-
-    # The pi extension imports typebox at runtime, but package.json lists it under
-    # devDependencies (and as a peer), which `--omit=dev` leaves out. Install that one
-    # package on its own until upstream moves it to dependencies.
-    system "npm", "pack", "typebox@1.4.3", "--pack-destination", buildpath
-    (libexec/"node_modules/typebox").mkpath
-    system "tar", "xzf", "typebox-1.4.3.tgz", "-C", libexec/"node_modules/typebox", "--strip-components=1"
 
     bin.install_symlink libexec/"bin/your-attention.js" => "your-attention"
   end
@@ -41,6 +36,6 @@ class YourAttention < Formula
   # The command has no --version flag: with no argument it prints its own list.
   test do
     assert_match "one inbox for the questions", shell_output("#{bin}/your-attention")
-    assert_predicate libexec/"node_modules/typebox/package.json", :exist?
+    assert_predicate libexec/"src/cli.ts", :exist?
   end
 end
