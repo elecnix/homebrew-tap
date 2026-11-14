@@ -1,8 +1,8 @@
 class YourAttention < Formula
   desc "One inbox for the questions all your coding agents ask you"
   homepage "https://github.com/elecnix/your-attention"
-  url "https://github.com/elecnix/your-attention/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "86a70d8e34f10829674ecd709dab1990df20b10e5a2fc502c674eae483863e0d"
+  url "https://github.com/elecnix/your-attention/archive/refs/tags/v0.1.1.tar.gz"
+  sha256 "d508dc36c16a09e4c70dbad5931eaf948b0dec5691c1c05f7c0341318ff8b6d7"
   license "MIT"
 
   livecheck do
