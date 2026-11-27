@@ -1,8 +1,8 @@
 class Bellwether < Formula
   desc "Herdr tools that let one coding agent start and watch child agents"
   homepage "https://github.com/elecnix/bellwether"
-  url "https://registry.npmjs.org/@elecnix/bellwether/-/bellwether-0.1.5.tgz"
-  sha256 "a11c5b923b32b209a55e9eab7bf1c6a426edad3c92c4af76387371dff940c076"
+  url "https://registry.npmjs.org/@elecnix/bellwether/-/bellwether-0.1.6.tgz"
+  sha256 "6867b5e93171180404b1ad49377f1f302480fe6cb26ffb0d3c920be93a58bda9"
   license "MIT"
 
   livecheck do
