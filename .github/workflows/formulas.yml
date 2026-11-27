@@ -1,0 +1,94 @@
+name: formulas
+
+# Audit, install and test every formula a pull request changes, from the pull
+# request's own checkout, on Linux. setup-homebrew links this checkout in as the
+# elecnix/tap tap, so `brew install elecnix/tap/<name>` installs the branch and
+# never the formula on main. A change to this workflow tests every formula, so
+# a workflow edit cannot pass without your-attention and bellwether installing.
+
+on:
+  pull_request:
+    paths:
+      - 'Formula/**'
+      - '.github/workflows/formulas.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Formula/**'
+      - '.github/workflows/formulas.yml'
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  # brew must not update itself or its taps in the middle of a run, so two runs
+  # of one commit test the same thing.
+  HOMEBREW_NO_AUTO_UPDATE: '1'
+  HOMEBREW_NO_INSTALL_CLEANUP: '1'
+  HOMEBREW_NO_ANALYTICS: '1'
+
+jobs:
+  formulas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Set up Homebrew with this checkout as the tap
+        id: brew
+        uses: Homebrew/actions/setup-homebrew@9adaf5f919d8bcadd00012733acf8d50319d25e3  # main, 2026-11-26
+
+      - name: Pick the formulas to test
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        working-directory: ${{ steps.brew.outputs.repository-path }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[].filename')
+          else
+            files=$(gh api "repos/$GITHUB_REPOSITORY/compare/$BEFORE...$AFTER" --jq '.files[].filename')
+          fi
+          if printf '%s\n' "$files" | grep -qx '.github/workflows/formulas.yml'; then
+            names=$(ls Formula | sed -n 's/\.rb$//p')
+          else
+            names=$(printf '%s\n' "$files" | sed -n 's|^Formula/\(.*\)\.rb$|\1|p')
+          fi
+          # A deleted formula has no file left to test.
+          keep=""
+          for name in $names; do
+            [ -f "Formula/$name.rb" ] && keep="$keep $name"
+          done
+          echo "formulas=${keep# }" >> "$GITHUB_OUTPUT"
+          echo "Testing:${keep:- nothing}"
+
+      - name: Style
+        if: steps.pick.outputs.formulas != ''
+        env:
+          FORMULAS: ${{ steps.pick.outputs.formulas }}
+        run: |
+          for name in $FORMULAS; do brew style "elecnix/tap/$name"; done
+
+      - name: Audit
+        if: steps.pick.outputs.formulas != ''
+        env:
+          FORMULAS: ${{ steps.pick.outputs.formulas }}
+        run: |
+          for name in $FORMULAS; do brew audit --new --online "elecnix/tap/$name"; done
+
+      - name: Install from the branch
+        if: steps.pick.outputs.formulas != ''
+        env:
+          FORMULAS: ${{ steps.pick.outputs.formulas }}
+        run: |
+          for name in $FORMULAS; do brew install --build-from-source --verbose "elecnix/tap/$name"; done
+
+      - name: Test
+        if: steps.pick.outputs.formulas != ''
+        env:
+          FORMULAS: ${{ steps.pick.outputs.formulas }}
+        run: |
+          for name in $FORMULAS; do brew test --verbose "elecnix/tap/$name"; done

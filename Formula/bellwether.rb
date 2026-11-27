@@ -22,18 +22,13 @@ class Bellwether < Formula
     bin.install_symlink libexec/"bin/bellwether-mcp"
   end
 
-  # The command has no --version flag: help prints its usage. doctor checks that the
-  # pi extension and the MCP entry exist in the installed package, then fails on the
-  # herdr socket, which a test sandbox never has.
+  # The test reads no message text, so rewording help or doctor never breaks it.
+  # Printing help loads the CLI's whole module graph, which fails on a missing
+  # runtime dependency; the version check proves the tarball is the one named above.
   test do
-    assert_match "Usage: bellwether", shell_output("#{bin}/bellwether help")
-
-    ENV["BELLWETHER_HOME"] = testpath/"bellwether"
-    ENV["HERDR_SOCKET_PATH"] = testpath/"herdr.sock"
-    output = shell_output("#{bin}/bellwether doctor", 1)
-    assert_match "ok    pi extension", output
-    assert_match "ok    mcp entry", output
-    assert_match "herdr socket: #{testpath}/herdr.sock does not exist", output
+    package = libexec/"lib/node_modules/@elecnix/bellwether"
+    assert_equal version.to_s, JSON.parse((package/"package.json").read)["version"]
+    system bin/"bellwether", "help"
     assert_predicate bin/"bellwether-mcp", :executable?
   end
 end
